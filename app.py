@@ -24,7 +24,7 @@ else:
         "http://localhost:3001"
     ])
 
-client = OpenAI()
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 # --- Helper to manage Assistant --- 
 ASSISTANT_ID_FILE = "assistant_id.txt"
