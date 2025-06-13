@@ -28,8 +28,15 @@ client = OpenAI()
 
 # --- Helper to manage Assistant --- 
 ASSISTANT_ID_FILE = "assistant_id.txt"
+assistant_cache = None  # Cache the assistant to avoid recreating it
 
 def get_or_create_assistant():
+    global assistant_cache
+    
+    # Return cached assistant if we have one
+    if assistant_cache is not None:
+        return assistant_cache
+    
     if os.path.exists(ASSISTANT_ID_FILE):
         with open(ASSISTANT_ID_FILE, "r") as f:
             assistant_id = f.read().strip()
@@ -38,6 +45,7 @@ def get_or_create_assistant():
                     print(f"Attempting to retrieve assistant with ID: {assistant_id}")
                     assistant = client.beta.assistants.retrieve(assistant_id)
                     print(f"Successfully retrieved assistant: {assistant.id}")
+                    assistant_cache = assistant  # Cache it
                     return assistant
                 except Exception as e:
                     print(f"Failed to retrieve assistant {assistant_id}, creating a new one: {e}")
@@ -46,22 +54,34 @@ def get_or_create_assistant():
     else:
         print("Assistant ID file not found, creating a new assistant.")
     
-    assistant = client.beta.assistants.create(
-        name="EHR File Processor",
-        instructions="You are an AI assistant that processes Electronic Health Record (EHR) files. Analyze the content and provide a summary or answer questions based on the file.",
-        model="gpt-4o",
-        tools=[{"type": "file_search"}],
-    )
-    with open(ASSISTANT_ID_FILE, "w") as f:
-        f.write(assistant.id)
-    print(f"Created new assistant with ID: {assistant.id} and saved to {ASSISTANT_ID_FILE}")
-    return assistant
+    try:
+        assistant = client.beta.assistants.create(
+            name="EHR File Processor",
+            instructions="You are an AI assistant that processes Electronic Health Record (EHR) files. Analyze the content and provide a summary or answer questions based on the file.",
+            model="gpt-4o",
+            tools=[{"type": "file_search"}],
+        )
+        with open(ASSISTANT_ID_FILE, "w") as f:
+            f.write(assistant.id)
+        print(f"Created new assistant with ID: {assistant.id} and saved to {ASSISTANT_ID_FILE}")
+        assistant_cache = assistant  # Cache it
+        return assistant
+    except Exception as e:
+        print(f"Error creating OpenAI assistant: {e}")
+        raise e
 
-assistant = get_or_create_assistant()
+# Don't create assistant on startup - wait until it's needed!
+
+@app.route("/", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy", "message": "EHR File Processor API is running"})
 
 @app.route("/api/process-file", methods=["POST"])
 def process_file():
-    global assistant # Allow modification of the global assistant object
+    try:
+        assistant = get_or_create_assistant()  # Get assistant when needed
+    except Exception as e:
+        return jsonify({"error": f"Failed to initialize AI assistant: {str(e)}"}), 500
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
     
