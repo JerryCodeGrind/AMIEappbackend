@@ -17,7 +17,21 @@ CORS(app, origins=[
     "http://localhost:3001"
 ])
 
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Debug OpenAI API key
+api_key = os.getenv('OPENAI_API_KEY')
+print(f"🔍 API Key check: {api_key[:8] if api_key else 'MISSING'}...")
+print(f"🔍 API Key length: {len(api_key) if api_key else 0}")
+
+if not api_key:
+    print("❌ OPENAI_API_KEY is missing!")
+    exit(1)
+
+try:
+    client = OpenAI(api_key=api_key)
+    print("✅ OpenAI client created successfully")
+except Exception as e:
+    print(f"❌ OpenAI client creation failed: {e}")
+    exit(1)
 
 # --- Helper to manage Assistant --- 
 ASSISTANT_ID_FILE = "assistant_id.txt"
