@@ -9,20 +9,13 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure CORS to allow your frontend domains
-if os.environ.get('FLASK_ENV') == 'production':
-    # Production CORS - replace with your actual Vercel domain
-    CORS(app, origins=[
-        "https://demodemodemo-two.vercel.app",
-        "https://demodemodemo-two.vercel.app/ehr"
-    ])
-else:
-    # Development CORS - allow localhost
-    CORS(app, origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001"
-    ])
+CORS(app, origins=[
+    "https://demodemodemo-two.vercel.app",
+    "https://demodemodemo-two.vercel.app/ehr",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001"
+])
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
